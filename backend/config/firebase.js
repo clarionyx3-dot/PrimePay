@@ -1,18 +1,18 @@
 const admin = require('firebase-admin');
 
-// Danish bhai, ye check karega ke variable mojud hai ya nahi
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} catch (e) {
-  console.error("Firebase Key Parse Error:", e.message);
-}
-
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("✅ Firebase Admin SDK Initialized!");
+  } catch (error) {
+    console.error("❌ Firebase Initialization Error:", error.message);
+  }
 }
 
 const db = admin.firestore();
-module.exports = { admin, db };
+const auth = admin.auth();
+
+module.exports = { admin, db, auth };
