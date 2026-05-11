@@ -69,13 +69,12 @@ export default function SADashboard() {
             <CardHead title="Top Revenue Partners" />
             <div style={{ padding: '0 20px 20px' }}>
               restaurants.length === 0 ? <Empty text="No active partners." /> :
-          {(Array.isArray(restaurants) ? restaurants : [])
+          (Array.isArray(restaurants) ? restaurants : [])
   .slice() // copy banayein
-  .sort((a, b) => (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0))
+  .sort((a, b) = (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0))
   .slice(0, 5)
-  .mapr 
-  
-}
+  .map(r = ( 
+
                   <div key={r.id} style={partnerRowStyle}>
                     <div style={avatarStyle}>{r.name?.[0]}</div>
                     <div style={{ flex: 1, marginLeft: 15 }}>
