@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SA } from '../../services/api';
-import { Card, CardHead, StatsGrid, Badge, Empty, Loading, Btn } from '../../components/UI';
+import { Card, CardHead, StatsGrid, Badge, Empty, Loading, Btn, toast } from '../../components/UI';
 
 export default function SADashboard() {
   const [revenue, setRevenue] = useState(null);
@@ -13,10 +13,9 @@ export default function SADashboard() {
     Promise.allSettled([SA.getRevenue(), SA.getRestaurants(), SA.getFeeConfig()])
       .then(([rev, rests, fc]) => {
         if (rev.status === 'fulfilled')   setRevenue(rev.value.data);
-        if (rests.status === 'fulfilled') setRestaurants(rests.value.data || []);
+        if (rests.status === 'fulfilled') setRestaurants(rests.value.data);
         if (fc.status === 'fulfilled')    setFee(fc.value.data);
       })
-      .catch(err => console.error("Data loading error:", err))
       .finally(() => setLoading(false));
   };
 
@@ -26,7 +25,7 @@ export default function SADashboard() {
 
   // Modern Fintech Stats
   const stats = [
-    { label: 'Total Ecosystem', value: Array.isArray(restaurants) ? restaurants.length : 0, icon: '🌐', color: '#7C3AED', note: 'Registered Partners' },
+    { label: 'Total Ecosystem', value: restaurants.length, icon: '🌐', color: '#7C3AED', note: 'Registered Partners' },
     { label: 'Platform Revenue', value: `$${(revenue?.totalFees || 0).toLocaleString()}`, icon: '💎', color: '#059669', note: 'Lifetime Earnings' },
     { label: 'Network Orders', value: (revenue?.totalOrders || 0).toLocaleString(), icon: '⚡', color: '#0052FF', note: 'Processed via PrimePay' },
     { label: 'Avg. Ticket Size', value: `$${((revenue?.totalFees || 0) / (revenue?.totalOrders || 1)).toFixed(2)}`, icon: '📊', color: '#F59E0B', note: 'Earning per order' },
@@ -48,16 +47,16 @@ export default function SADashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 25, marginTop: 25 }}>
         
+        {/* REVENUE SETTINGS CARD */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
-          {/* REVENUE SETTINGS CARD */}
           <Card style={{ border: '2px solid #7C3AED', background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)', color: '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8 }}>GLOBAL COMMISSION RATE</div>
                 <div style={{ fontSize: 48, fontWeight: 900, fontFamily: 'Syne', margin: '10px 0' }}>
-                  ${fee?.perOrderFee?.toFixed(2) || "0.70"} <span style={{fontSize: 18, fontWeight: 400}}>/ order</span>
+                  ${fee.perOrderFee?.toFixed(2)} <span style={{fontSize: 18, fontWeight: 400}}>/ order</span>
                 </div>
-                <p style={{ fontSize: 13, opacity: 0.9 }}>This fee is automatically deducted from every transaction.</p>
+                <p style={{ fontSize: 13, opacity: 0.9 }}>This fee is automatically deducted from every transaction across the network.</p>
               </div>
               <Btn variant="ghost" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }} onClick={() => window.location.hash = '#/sa/fees'}>
                 Adjust Fee
@@ -69,27 +68,20 @@ export default function SADashboard() {
           <Card style={{ borderRadius: 24 }}>
             <CardHead title="Top Revenue Partners" />
             <div style={{ padding: '0 20px 20px' }}>
-              {!Array.isArray(restaurants) || restaurants.length === 0 ? (
-                <Empty text="No active partners." />
-              ) : (
-                restaurants
-                  .slice()
-                  .sort((a, b) => (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0))
-                  .slice(0, 5)
-                  .map(r => (
-                    <div key={r.id} style={partnerRowStyle}>
-                      <div style={avatarStyle}>{r.name?.[0] || 'R'}</div>
-                      <div style={{ flex: 1, marginLeft: 15 }}>
-                        <div style={{ fontWeight: 800, color: '#1B2559' }}>{r.name}</div>
-                        <div style={{ fontSize: 12, color: '#A3AED0' }}>{r.totalOrders || 0} Successful Orders</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 900, color: '#059669' }}>+${(r.totalFeesPaid || 0).toFixed(2)}</div>
-                        <Badge status={r.status || 'active'} />
-                      </div>
+              {restaurants.length === 0 ? <Empty text="No active partners." /> :
+          (restaurants || []).sort((a, b) => (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0)).slice(0, 5).map(r => (  
+                  <div key={r.id} style={partnerRowStyle}>
+                    <div style={avatarStyle}>{r.name?.[0]}</div>
+                    <div style={{ flex: 1, marginLeft: 15 }}>
+                      <div style={{ fontWeight: 800, color: '#1B2559' }}>{r.name}</div>
+                      <div style={{ fontSize: 12, color: '#A3AED0' }}>{r.totalOrders || 0} Successful Orders</div>
                     </div>
-                  ))
-              )}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 900, color: '#059669' }}>+${(r.totalFeesPaid || 0).toFixed(2)}</div>
+                      <Badge status={r.status || 'active'} />
+                    </div>
+                  </div>
+                ))}
             </div>
           </Card>
         </div>
@@ -98,7 +90,7 @@ export default function SADashboard() {
         <Card style={{ borderRadius: 24 }}>
           <CardHead title="Live Fee Settlements" />
           <div style={{ padding: '0 20px 20px', maxHeight: '600px', overflowY: 'auto' }}>
-            {revenue?.recentTxns?.length > 0 ? (
+            {revenue?.recentTxns?.length ? (
               revenue.recentTxns.map(t => (
                 <div key={t.id} style={txnRowStyle}>
                   <div style={iconCircle}>💸</div>
@@ -109,9 +101,7 @@ export default function SADashboard() {
                   <div style={{ fontWeight: 800, color: '#7C3AED' }}>+${(t.feeAmount || 0).toFixed(2)}</div>
                 </div>
               ))
-            ) : (
-              <Empty text="No transactions logged." />
-            )}
+            ) : <Empty text="No transactions logged." />}
           </div>
         </Card>
       </div>
