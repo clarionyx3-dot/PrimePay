@@ -68,19 +68,33 @@ export default function SADashboard() {
           <Card style={{ borderRadius: 24 }}>
             <CardHead title="Top Revenue Partners" />
             <div style={{ padding: '0 20px 20px' }}>
-              {restaurants.length === 0 ? <Empty text="No active partners." /> :
-                (restaurants || []).sort((a, b) => (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0)).slice(0, 5).map(r => (
-                  <div key={r.id} style={partnerRowStyle}>
-                    <div style={avatarStyle}>{r.name?.[0]}</div>
-                    <div style={{ flex: 1, marginLeft: 15 }}>
-                      <div style={{ fontWeight: 800, color: '#1B2559' }}>{r.name}</div>
-                      <div style={{ fontSize: 12, color: '#A3AED0' }}>{r.totalOrders || 0} Successful Orders</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 900, color: '#059669' }}>+${(r.totalFeesPaid || 0).toFixed(2)}</div>
-                      <Badge status={r.status || 'active'} />
-                    </div>
-                  </div>
+       {/* TOP PARTNERS LIST */}
+<Card style={{ borderRadius: 24 }}>
+  <CardHead title="Top Revenue Partners" />
+  <div style={{ padding: '0 20px 20px' }}>
+    {(!Array.isArray(restaurants) || restaurants.length === 0) ? (
+      <Empty text="No active partners." />
+    ) : (
+      restaurants
+        .slice() // Data ki copy banata hai taaki original kharab na ho
+        .sort((a, b) => (b.totalFeesPaid || 0) - (a.totalFeesPaid || 0))
+        .slice(0, 5)
+        .map(r => (
+          <div key={r.id} style={partnerRowStyle}>
+            <div style={avatarStyle}>{r.name?.[0]}</div>
+            <div style={{ flex: 1, marginLeft: 15 }}>
+              <div style={{ fontWeight: 800, color: '#1B2559' }}>{r.name}</div>
+              <div style={{ fontSize: 12, color: '#A3AED0' }}>{r.totalOrders || 0} Successful Orders</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: 900, color: '#059669' }}>+${(r.totalFeesPaid || 0).toFixed(2)}</div>
+              <Badge status={r.status || 'active'} />
+            </div>
+          </div>
+        ))
+    )}
+  </div>
+</Card>
                 ))
               }
             </div>
