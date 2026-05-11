@@ -1,97 +1,36 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
-const morgan  = require('morgan');
-const admin   = require('firebase-admin');
-const path    = require('path');
-const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-// Firebase Admin Initialization
-const serviceAccount = require('./config/serviceAccountKey.json');
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  console.log("🚀 Firebase Admin SDK Initialized!");
-}
-
+const cors = require('cors');
+const morgan = require('morgan');
 const auth = require('./middleware/auth');
+const restaurantRoutes = require('./routes/restaurantRoutes'); // Check karein path sahi ho
+
 const app = express();
 
-// ── 1. MIDDLEWARES (CORS Universal Fix) ───────────────────────────
+// 1. MIDDLEWARES
+app.use(morgan('dev'));
+app.use(express.json());
 
-app.use(cors({ 
-  origin: function (origin, callback) {
-    // Danish bhai, ye logic har Vercel URL aur Localhost ko allow karega
-    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }, 
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+// CORS Settings
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
 
-// ── 2. WEBHOOK ROUTE (Body parser se pehle) ───────────────────────
-app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = "whsec_28977c7a263e82c6ade913e2378ab7149fca243afa30da98dabceb72dab7bd86"; 
+// 2. ROUTES
+app.get('/health', (req, res) => res.json({ status: 'ok', message: 'PrimePay API is Live' }));
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    console.error(`❌ Webhook Signature Error: ${err.message}`);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+// Protected Routes (Yahan auth check hoga)
+app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const { restaurantId } = session.metadata;
-
-    console.log(`🔔 Payment Confirmed! Activating: ${restaurantId}`);
-
-    try {
-      await admin.firestore().collection('restaurants').doc(restaurantId).update({
-        status: 'active',
-        isPaid: true,
-        activatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    } catch (dbErr) {
-      console.error("❌ Firestore Update Error:", dbErr);
-    }
-  }
-
-  res.json({ received: true });
-});
-
-app.use(express.json()); 
-app.use(morgan('dev'));
-
-// ── 3. ROUTES ───────────────────────────────────────────────────
-
-app.get('/health', (req, res) => res.json({ ok: true, app: 'PrimePay v2' }));
-
-app.use('/api/payments', require('./routes/paymentRoutes'));
-app.use('/api/menu', require('./routes/menuRoutes'));
-
-// Protected Routes
-app.use('/api/superadmin', auth, require('./routes/superadmin/index'));
-app.use('/api/restaurant', auth, require('./routes/restaurant'));
-app.use('/api/payments-protected', auth, require('./routes/payments'));
-app.use('/api/invoices',   auth, require('./routes/invoices'));
-app.use('/api/credit',     auth, require('./routes/credit'));
-app.use('/api/payroll',    auth, require('./routes/payroll'));
-app.use('/api/inventory',  auth, require('./routes/inventory'));
-app.use('/api/employees',  auth, require('./routes/employees'));
-
+// Error Handling
 app.use((err, req, res, next) => {
-  console.error("❌ Server Error:", err.stack);
-  res.status(500).json({ error: err.message });
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ PrimePay API → http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
