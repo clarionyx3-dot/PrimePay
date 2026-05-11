@@ -1,35 +1,37 @@
 const { admin, db } = require('../config/firebase');
 
 const auth = async (req, res, next) => {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
   try {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
     const token = header.split(' ')[1];
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     
-    // Danish bhai, yahan hum UID ke zariye direct Firestore check kar rahe hain
-    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    // Danish bhai, yahan 'users' collection se aapka profile data uthaya ja raha hai
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     
     if (!userDoc.exists) {
-      console.log("User doc not found in Firestore for UID:", decoded.uid);
-      return res.status(403).json({ error: 'Forbidden: No profile found' });
+      return res.status(403).json({ error: 'Forbidden: Profile not found in Firestore' });
     }
 
     const userData = userDoc.data();
-    // Request object mein user ka sara data (including role) save kar rahe hain
-    req.user = { uid: decoded.uid, email: decoded.email, ...userData };
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: userData.role // Ye line 'superadmin' check karegi
+    };
     
     next();
-  } catch (e) {
-    console.error("Auth Middleware Error:", e.message);
+  } catch (error) {
+    console.error("Auth Middleware Error:", error.message);
     return res.status(403).json({ error: 'Forbidden: Invalid token' });
   }
 };
 
-// Role check karne ka function
+// Role verify karne ka function
 auth.requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
