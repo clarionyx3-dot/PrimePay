@@ -4,12 +4,9 @@ const cors = require('cors');
 
 const app = express();
 
-// Danish bhai, ye CORS ki setting aapke frontend ko ijazat degi
+// Danish bhai, ye setting har naye frontend link ko ijazat degi
 app.use(cors({
-  origin: [
-    "https://prime-pay-3hbm-p8bqcfo4f-danish122.vercel.app",
-    "https://prime-pay-3hbm.vercel.app"
-  ],
+  origin: true, // Ye automatically aane wali request ko allow karega
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -18,16 +15,24 @@ app.use(cors({
 app.use(express.json());
 
 // Health Checks
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'PrimePay Live!' }));
 app.get('/api', (req, res) => res.json({ status: 'ok' }));
 
-// Routes
+// MAIN ROUTES
 try {
   const auth = require('./middleware/auth');
   const restaurantRoutes = require('./routes/restaurant');
+  
+  // Frontend ke /api/superadmin/restaurants se match karne ke liye
   app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
+  
 } catch (error) {
   console.error("❌ Connection Error:", error.message);
 }
+
+// Catch-all for undefined routes
+app.use('*', (req, res) => {
+  res.status(404).json({ error: `Backend live hai, rasta check karein: ${req.originalUrl}` });
+});
 
 module.exports = app;
