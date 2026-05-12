@@ -1,28 +1,28 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const auth = require('./middleware/auth');
-const restaurantRoutes = require('./routes/restaurantRoutes');
 
 const app = express();
-
-// Danish bhai, ye line aapke frontend ko ijazat degi
-app.use(cors({
-  origin: [
-    "https://prime-pay-3hbm-fyy53txqe-danish122.vercel.app",
-    "https://prime-pay-3hbm.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
 app.use(express.json());
 
-// Health Check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+// CORS Fix
+app.use(cors({
+  origin: '*', 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
-// Routes
-app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
+// Health Check - Pehle ye check karega ke backend zinda hai ya nahi
+app.get('/', (req, res) => res.send("PrimePay Backend is Live and Running!"));
+
+// Danish bhai, yahan hum files ko "Safe" tareeqe se bula rahe hain
+try {
+  const auth = require('./middleware/auth');
+  const restaurantRoutes = require('./routes/restaurantRoutes');
+  
+  app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
+} catch (error) {
+  console.error("❌ File Load Error:", error.message);
+}
 
 module.exports = app;
