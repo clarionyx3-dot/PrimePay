@@ -2,8 +2,7 @@ import axios from 'axios';
 import { auth } from '../firebase';
 
 // Danish bhai, humne yahan direct backend ka link daal diya hai
-const API_URL = 'https://prime-rlnv9sfsk-danish122.vercel.app/api';
-
+const API_URL = 'https://prime-1iwuzbyoe-danish122.vercel.app/api';
 const api = axios.create({ 
   baseURL: API_URL 
 });
