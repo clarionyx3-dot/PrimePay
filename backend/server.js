@@ -1,35 +1,29 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
-// Danish bhai, ye block har request par headers thonp dega (Forcefully)
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
+// Danish bhai, ye line har kism ke "lock" ko bypass kar degi
+app.use(cors({
+    origin: (origin, callback) => callback(null, true), 
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
 
 app.use(express.json());
 
-// Basic Route for testing
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Master Bypass Active!' });
-});
+// Health Check (Verify karne ke liye)
+app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'PrimePay Live!' }));
 
-// Main Routes
+// MAIN ROUTES
 try {
   const auth = require('./middleware/auth');
   const restaurantRoutes = require('./routes/restaurant');
-  // Isay direct use karein
-  app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
-} catch (e) {
-  console.log("Error:", e.message);
+  // Aapke screenshot ke mutabiq stats aur orders ke routes bhi yahan add honay chahiye
+  app.use('/api/restaurant', auth, restaurantRoutes);
+} catch (error) {
+  console.error("❌ Route Error:", error.message);
 }
 
 module.exports = app;
