@@ -1,12 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const auth = require('./middleware/auth');
-const restaurantRoutes = require('./routes/restaurantRoutes');
+const path = require('path');
 
 const app = express();
 
-// 1. CORS Settings (Frontend ko ijazat)
+// 1. CORS Settings (Frontend ko connect karne ke liye)
 app.use(cors({
   origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -15,15 +14,30 @@ app.use(cors({
 
 app.use(express.json());
 
-// 2. Health Check (Check karne ke liye: prime-pay-one.vercel.app/api/health)
-app.get('/api/health', (req, res) => res.json({ status: 'ok', message: 'Backend is Live' }));
-
-// 3. MAIN ROUTES (Danish bhai, yahan /api lagana zaroori hai frontend ke liye)
-app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
-
-// Error handling agar rasta na mile
-app.use((req, res) => {
-    res.status(404).json({ error: `Rasta nahi mila: ${req.originalUrl}` });
+// 2. Health Check (Browser mein check karein: /api/health)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'PrimePay Backend is Running!' });
 });
 
+// Root URL Check
+app.get('/', (req, res) => {
+  res.send("PrimePay Backend is Live and Running!");
+});
+
+// 3. MAIN ROUTES (Safe Loading)
+try {
+  // Danish bhai, check kijiyega ke folder aur file ka naam bilkul yahi ho
+  const auth = require('./middleware/auth');
+  const restaurantRoutes = require('./routes/restaurantRoutes');
+
+  // Frontend ke mutabiq /api/superadmin/restaurants
+  app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
+  
+  console.log("✅ Routes Loaded Successfully");
+} catch (error) {
+  // Agar koi module nahi mil raha toh server crash nahi hoga, sirf yahan error dikhayega
+  console.error("❌ Module Loading Error:", error.message);
+}
+
+// 4. VERCEL EXPORT
 module.exports = app;
