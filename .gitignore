@@ -1,0 +1,34 @@
+# Dependency folders
+node_modules/
+jspm_packages/
+
+# Environment variables (Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase Secrets
+backend/config/serviceAccountKey.json
+FIREBASE_SETUP.md
+
+# Payment Secrets (GitHub is blocking this!)
+backend/routes/paymentRoutes.js
+
+# Build folders
+frontend/build/
+dist/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
