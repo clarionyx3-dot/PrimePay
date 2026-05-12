@@ -1,11 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const app = express();
 
-// 1. CORS Settings (Frontend ko connect karne ke liye)
+// 1. CORS Settings (Frontend Permission)
 app.use(cors({
   origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -14,30 +13,31 @@ app.use(cors({
 
 app.use(express.json());
 
-// 2. Health Check (Browser mein check karein: /api/health)
+// 2. HEALTH CHECK (Taaki hum verify kar sakein backend zinda hai)
+// Isay check karein: prime-pay-one.vercel.app/api/health
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'PrimePay Backend is Running!' });
+  res.json({ status: 'ok', message: 'PrimePay Backend Connected!' });
 });
 
-// Root URL Check
-app.get('/', (req, res) => {
-  res.send("PrimePay Backend is Live and Running!");
-});
-
-// 3. MAIN ROUTES (Safe Loading)
+// 3. MAIN ROUTES
 try {
-  // Danish bhai, check kijiyega ke folder aur file ka naam bilkul yahi ho
   const auth = require('./middleware/auth');
   const restaurantRoutes = require('./routes/restaurantRoutes');
 
-  // Frontend ke mutabiq /api/superadmin/restaurants
+  // Danish bhai, ye rasta frontend ke `/api` se bilkul match karega
   app.use('/api/superadmin/restaurants', auth, auth.requireRole('superadmin'), restaurantRoutes);
   
-  console.log("✅ Routes Loaded Successfully");
+  // Agar revenue ka route hai toh wo bhi yahan add kar dein
+  // const revenueRoutes = require('./routes/revenueRoutes');
+  // app.use('/api/superadmin/revenue', auth, auth.requireRole('superadmin'), revenueRoutes);
+
 } catch (error) {
-  // Agar koi module nahi mil raha toh server crash nahi hoga, sirf yahan error dikhayega
-  console.error("❌ Module Loading Error:", error.message);
+  console.error("❌ Module Load Error:", error.message);
 }
 
-// 4. VERCEL EXPORT
+// 4. CATCH ALL (Agar rasta ghalat ho toh crash na ho)
+app.use('*', (req, res) => {
+  res.status(404).json({ error: `Rasta nahi mila: ${req.originalUrl}` });
+});
+
 module.exports = app;
